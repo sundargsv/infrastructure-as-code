@@ -1,0 +1,87 @@
+version: '3'
+
+#.. other network setup for my-elasticsearch    
+networks:
+  my-elasticsearch:
+    driver: bridge   
+
+#.. other services
+services: 
+  #.. es01
+  es01:
+    container_name: my-es01-dev
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.8.0
+    environment:
+      - node.name=es01
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=es02
+      - cluster.initial_master_nodes=es01,es02
+      - bootstrap.memory_lock=true
+      - http.cors.enabled=true
+      - http.cors.allow-origin=*
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1  
+    volumes:
+      - ./data01-volume:/usr/share/elasticsearch/data
+    ports:
+      - 9010:9200
+    networks:
+      - my-elasticsearch
+    # restart: unless-stopped      
+
+  #.. es02
+  es02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.8.0
+    container_name: my-es02-dev
+    volumes:
+      - ./data02-volume:/usr/share/elasticsearch/data
+    environment: 
+      - node.name=es02
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=es01
+      - cluster.initial_master_nodes=es01,es02
+      - bootstrap.memory_lock=true
+      - http.cors.enabled=true
+      - http.cors.allow-origin=*
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1 
+        hard: -1 
+    networks: 
+      - my-elasticsearch
+  #   # restart: unless-stopped  
+
+  # #.. es03    
+  # es03:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:7.8.0
+  #   container_name: es03
+  #   volumes:
+  #     - ./data03-volume:/usr/share/elasticsearch/data
+  #   environment:
+  #     - node.name=es03
+  #     - cluster.name=es-docker-cluster
+  #     - discovery.seed_hosts=es01,es02
+  #     - cluster.initial_master_nodes=es01,es02,es03
+  #     - bootstrap.memory_lock=true
+  #     - http.cors.enabled=true
+  #     - http.cors.allow-origin=*
+  #     - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+  #   ulimits:
+  #     memlock:
+  #       soft: -1 
+  #       hard: -1   
+  #   networks: 
+  #     - my-elasticsearch
+    # restart: unless-stopped
+    
+  es-ui:
+    image: 'cars10/elasticvue'
+    container_name: my-es-dev-ui
+    ports:
+      - '9011:8080'
+    networks:
+      - my-elasticsearch  

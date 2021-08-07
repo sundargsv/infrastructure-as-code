@@ -1,0 +1,27 @@
+version: '2'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    network_mode: host
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 32181
+      ZOOKEEPER_TICK_TIME: 2000
+    extra_hosts:
+      - "moby:0.0.0.0"
+      - "default:0.0.0.0"
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    env_file:
+        - .env
+    network_mode: host
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: $KAFKA_BROKER_ID
+      KAFKA_ZOOKEEPER_CONNECT: 0.0.0.0:32181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://$INSTANCE_PUBLIC_IP:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    extra_hosts:
+      - "moby:0.0.0.0"
+      - "default:0.0.0.0"

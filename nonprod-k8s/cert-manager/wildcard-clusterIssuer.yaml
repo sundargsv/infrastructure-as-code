@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-wildcard-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: devops.my@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-wildcard-prod
+    # Enable the HTTP-01 challenge provider
+    solvers:
+    - selector: {}
+    - http01:
+        ingress:
+          class: nginx

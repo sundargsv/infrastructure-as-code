@@ -1,0 +1,62 @@
+version: '3'
+
+#.. other network setup for my-keycloak      
+networks:
+  my-sso:
+    driver: bridge   
+
+#.. other services
+services: 
+  #.. pgadmin (Only for development mode)
+  pgadmin:
+    container_name: my-pgadmin-dev
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: dev.my@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: AbCd7!
+    volumes:
+      - ./pgadmin-volume:/root/.pgadmin
+    ports:
+      - 9003:80
+    networks:
+      - my-sso
+    restart: unless-stopped      
+
+  #.. postgresql
+  postgres:
+    image: postgres
+    container_name: my-postgresql-dev
+    volumes:
+      - ./postgresql-volume:/var/lib/postgresql
+    environment: 
+      POSTGRES_DB: my-keycloak
+      POSTGRES_USER: postgresql
+      POSTGRES_PASSWORD: AbCd7!
+    ports:
+      - 9002:5432
+    networks: 
+      - my-sso
+    restart: unless-stopped  
+
+  #.. keycloak    
+  # keycloak:
+  #   image: jboss/keycloak
+  #   container_name: my-keycloak-dev
+  #   environment:
+  #     DB_VENDOR: POSTGRES
+  #     DB_ADDR: postgres
+  #     DB_DATABASE: my-keycloak
+  #     DB_USER: postgresql
+  #     DB_SCHEMA: public
+  #     DB_PASSWORD: AbCd7!
+  #     KEYCLOAK_USER: admin
+  #     KEYCLOAK_PASSWORD: admin
+  #     # Uncomment the line below if you want to specify JDBC parameters. The parameter below is just an example, and it shouldn't be used in production without knowledge. It is highly recommended that you read the PostgreSQL JDBC driver documentation in order to use it.
+  #     #JDBC_PARAMS: "ssl=true"
+  #   ports:
+  #     - 9001:8080
+  #   networks: 
+  #     - my-sso
+  #   restart: unless-stopped    
+  #   depends_on:
+  #     - postgres    

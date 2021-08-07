@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+ name: kubeoci-dev-webui-com
+ namespace: default
+spec:
+ secretName: kubeoci-dev-webui-com-tls
+ issuerRef:
+   group: cert-manager.io
+   name: letsencrypt-prod
+   kind: ClusterIssuer
+ dnsNames:
+   - '*.kubeoci-dev.webui.com'
+ acme:
+   config:
+     - dns01:
+         provider: dns
+       domains:
+         - '*.kubeoci-dev.webui.com'

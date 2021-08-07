@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: my-auth
+  labels:
+    app: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+      - name: keycloak
+        image: jboss/keycloak:10.0.0
+        args: [-Dkeycloak.profile=preview, -Dkeycloak.profile.feature.upload_scripts=enabled, -Dkeycloak.profile.feature.token_exchange=enabled]
+        resources:
+          limits:
+            memory: 800Mi
+            cpu: "1.5"
+          requests:
+            memory: 512Mi
+            cpu: "1"  
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PROXY_ADDRESS_FORWARDING
+          value: "true"
+        - name: DB_VENDOR
+          value: "postgres"
+        - name: DB_USER
+          value: "postgresql"
+        - name: DB_PASSWORD
+          value: "AbCd7!"
+        - name: DB_DATABASE
+          value: "my-keyclock-non-prod" 
+        - name: DB_SCHEMA
+          value: "public"   
+        - name: DB_ADDR
+          value: "127.0.0.1:9002"
+        - name: KEYCLOAK_USER
+          value: "admin"
+        - name: KEYCLOAK_PASSWORD
+          value: "admin"

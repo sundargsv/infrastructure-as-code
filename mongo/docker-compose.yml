@@ -1,0 +1,15 @@
+version: '3'
+services:
+ #.. other configs
+ database:
+  image: 'mongo'
+  container_name: 'my-mongodb-dev'
+  environment:
+   - MONGO_INITDB_DATABASE=my-datastore
+   - MONGO_INITDB_ROOT_USERNAME=my-mongo
+   - MONGO_INITDB_ROOT_PASSWORD=qwerty
+  volumes:
+   - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+   - ./mongodb-volume:/data/db
+  ports:
+   - '27017:27017'

@@ -1,0 +1,14 @@
+apiVersion: v1
+data:
+  Corefile: ".:53 {\n\t\t\t\terrors\n\t\t\t\thealth\n\t\t\t\tready\n\t\t\t\tkubernetes
+    cluster.local in-addr.arpa ip6.arpa {\n\t\t\t\t  pods insecure\n\t\t\t\t  fallthrough
+    in-addr.arpa ip6.arpa\n\t\t\t\t}\n\t\t\t\tforward . /etc/resolv.conf\n\t\t\t\tcache
+    30\n\t\t\t\tloop\n\t\t\t\treload\n\t\t\t\tloadbalance\n\t\t\t}\n\t\t\timport custom/*.server"
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2020-08-08T17:13:08Z"
+  name: coredns
+  namespace: kube-system
+  resourceVersion: "462"
+  selfLink: /api/v1/namespaces/kube-system/configmaps/coredns
+  uid: 4bdc635b-d41f-4f37-ab74-711f3ac14043

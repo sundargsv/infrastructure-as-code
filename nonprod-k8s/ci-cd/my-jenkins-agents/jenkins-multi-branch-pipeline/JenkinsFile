@@ -1,0 +1,158 @@
+pipeline {
+        environment {
+
+            /*
+            *  APP Name should be as same as repo, project & helm chart name
+            *  APP Version needs to be upgraded once prod push (Now e2e)
+            *  APP Category decides to which namespace the app should get deployed
+            *  Acceptable categories are  => api| ui| ml| tools
+            */
+            APP_NAME = "my-api"
+            APP_VERSION = "1.0.0"
+            APP_CATEGORY = "api"
+            APP_INGRESS_DNS_BASE = "api.com"
+            APP_INGRESS_DOMAIN_PREFIX = "api-test1"
+
+            /*
+            * Common config
+            * Registry, Branch
+            */
+
+            // Registry details
+            REGISTRY_BASE_URI = "asia.gcr.io"
+            REGISTRY_GROUP_NAME = "my-dev-platform"
+            REGISTRY_IMAGE_BASE = "${REGISTRY_BASE_URI}/${REGISTRY_GROUP_NAME}/${APP_NAME}"
+
+            HELM_TEMPLATES_PATH = "helm/."
+            DOCKERFILE_PATH = "docker/Dockerfile"
+
+    }
+    agent { label 'mydev/jenkins-agent:1.0.3' }
+    stages {
+
+        // App packaging and Docker build
+        stage('Build'){
+            steps{
+
+                sh "echo The current branch is ${env.BRANCH_NAME}"
+                // Defaulting
+                script {
+
+                    switch (env.BRANCH_NAME) {
+
+                        /*
+                        * E2E branch and later will be refered prod branch
+                        * BUILD_TAG has to be latest whenever pushing to dev
+                        * ENVIRONMENT decides the application config/ property file
+                        */
+                        case 'master':
+                            env.BUILD_TAG = input message: 'Update the Production Version!', parameters: [string(defaultValue: '0', description: 'Update App Version', name: 'Version')]
+                            env.ENVIRONMENT = "prod"
+                            env.K8S_NAMESPACE = "prod-${env.APP_CATEGORY}"
+                            env.INGRESS_ENABLED = false
+                            env.INGRESS_DOMAIN = "${env.APP_INGRESS_DOMAIN_PREFIX}.${env.APP_INGRESS_DNS_BASE}"
+                            env.INGRESS_PATH = "/prod"
+                            break
+                        case 'e2e':
+                             env.BUILD_TAG = "latest"
+                             env.ENVIRONMENT = "e2e"
+                             env.K8S_NAMESPACE = "e2e-${env.APP_CATEGORY}"
+                             env.INGRESS_ENABLED = true
+                             env.INGRESS_DOMAIN = "${env.APP_INGRESS_DOMAIN_PREFIX}.${env.APP_INGRESS_DNS_BASE}"
+                             env.INGRESS_PATH = "/e2e"
+                             break
+                        default:
+                            env.BUILD_TAG = "latest"
+                            env.ENVIRONMENT = "development"
+                            env.K8S_NAMESPACE = "dev-${env.APP_CATEGORY}"
+                            env.INGRESS_ENABLED = true
+                            env.INGRESS_DOMAIN = "${env.APP_INGRESS_DOMAIN_PREFIX}.${env.APP_INGRESS_DNS_BASE}"
+                            env.INGRESS_PATH = "/dev"
+                            break
+                    }
+
+                }
+
+                // Maven build
+                sh "mvn clean install -DskipTests"
+
+                script {
+                    try{
+                        sh "docker rmi ${env.REGISTRY_IMAGE_BASE}:${env.BUILD_TAG}"
+                    }catch (e){
+                        sh "echo STEP SKIPPED: No Image with same name found to remove"
+                    }
+                }
+
+                // Docker build
+                sh "docker build -f ${env.DOCKERFILE_PATH} -t ${env.REGISTRY_IMAGE_BASE}:${env.BUILD_TAG} ."
+
+            }
+        }
+
+        stage('Push'){
+            steps{
+                withCredentials([file(credentialsId: 'access_to_gcr_my_dev_platform', variable: 'GC_KEY')]){
+                    sh "chmod 600 $GC_KEY"
+                    sh "cat $GC_KEY | docker login -u _json_key --password-stdin https://asia.gcr.io"
+                    sh "docker push ${env.REGISTRY_IMAGE_BASE}:${env.BUILD_TAG}"
+                }
+            }
+        }
+
+
+        stage('Deploy'){
+                     steps{
+                         script {
+                            if (env.BRANCH_NAME == "master") {
+                                // deployment to production
+                                withKubeConfig(credentialsId: 'access_to_prod_gke_kubeconfig'){
+                                    deploymentScript()
+                                }
+                            }else{
+                                // deployment to non-production
+                                withKubeConfig(credentialsId: 'access_to_non_prod_kubeconfig'){
+                                    deploymentScript()
+                                }
+                            }
+                        }
+                    }
+                }
+    }
+
+    // Send api
+    post {
+        success {
+            script {
+                wrap([$class: 'BuildUser']) {
+                    slackSend(color: '#00FF00', message: "SUCCESS: ${env.JOB_NAME} job started by ${BUILD_USER} has been deployed successfully to ${env.ENVIRONMENT} environment.\nBuild Info:\nNo: #${env.BUILD_NUMBER}:\nURL: ${env.BUILD_URL}" )
+                }
+            }
+        }
+
+        failure{
+            script {
+                wrap([$class: 'BuildUser']) {
+                    slackSend(color: '#FF0000', message: "FAILURE: ${env.JOB_NAME} job started by ${BUILD_USER} was failed to deploy in ${env.ENVIRONMENT} environment.\nBuild Info:\nNo: #${env.BUILD_NUMBER}:\nURL: ${env.BUILD_URL}")
+                }
+            }
+        }
+    }
+
+}
+
+
+// deployment scripts as a func
+void deploymentScript(){
+    try{
+        sh "echo The current Namespace is ${env.K8S_NAMESPACE} and environment is ${env.ENVIRONMENT}"
+        sh "helm upgrade ${env.APP_NAME}-${env.ENVIRONMENT} ${env.HELM_TEMPLATES_PATH} --namespace=${env.K8S_NAMESPACE} --set image.tag=${env.BUILD_TAG} --set environment=${env.ENVIRONMENT} --set ingress.enabled=${env.INGRESS_ENABLED} --set ingress.domain=${env.INGRESS_DOMAIN} --set ingress.paths.path=${env.INGRESS_PATH}"
+    }catch (e){
+        sh "echo STEP SKIPPED: No chart with same name found to upgrade"
+        sh "helm install ${env.APP_NAME}-${env.ENVIRONMENT} ${env.HELM_TEMPLATES_PATH} --namespace=${env.K8S_NAMESPACE} --set image.tag=${env.BUILD_TAG} --set environment=${env.ENVIRONMENT} --set ingress.enabled=${env.INGRESS_ENABLED} --set ingress.domain=${env.INGRESS_DOMAIN} --set ingress.paths.path=${env.INGRESS_PATH}"
+    }
+
+    // Review
+    sh "kubectl get all -n ${env.K8S_NAMESPACE} | grep ${env.APP_NAME}"
+    sh "kubectl get ing -n ${env.K8S_NAMESPACE} | grep ${env.APP_NAME}"
+}

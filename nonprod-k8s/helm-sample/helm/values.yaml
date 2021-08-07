@@ -1,0 +1,72 @@
+replicaCount: 1
+environment: development
+image:
+  pullPolicy: Always
+  name: asia.gcr.io/my-dev-platform/my-api:latest
+  tag: latest
+
+imagePullSecrets:
+  name: gcr-json-key  
+
+# Define service
+service:
+  name: my-api
+  type: ClusterIP
+  externalPort: 8080
+  internalPort: 8080
+
+# Define resources
+resources: {}
+  # limits:
+  #   memory: 1024Mi
+  # requests:
+  #   memory: 64Mi
+
+## Liveness & Readiness Probes
+livenessProbe: {}
+#  httpGet:
+#    path: /
+#    port: 8080
+#  initialDelaySeconds: 30
+#  timeoutSeconds: 5
+#  periodSeconds: 3
+readinessProbe: {}
+#  httpGet:
+#    path: /
+#    port: 8080
+#  initialDelaySeconds: 30
+#  timeoutSeconds: 5
+#  periodSeconds: 3
+restartPolicy: Always
+
+## Setup Ingress
+ingress:
+  enabled: true
+  annotations:
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+    # nginx.ingress.kubernetes.io/affinity: cookie
+    # nginx.ingress.kubernetes.io/session-cookie-name: JSESSIONID
+    # kubernetes.io/ingress.allow-http: true
+    # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    # nginx.ingress.kubernetes.io/ssl-redirect: false
+    kubernetes.io/ingress.class: "nginx"
+    # kubernetes.io/tls-acme: "true"
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rewrite-target: "/$1"
+  tls:
+    enabled: true
+    secretName: api-api-tls
+  domain: kubeoci.api.com
+  paths:
+    path: /
+
+horizontalautoscaling:
+  enabled: false
+  cpuUtilizationPercentage: 80
+  memoryUtilization: 512Mi
+
+nameOverride:
+fullnameOverride:
+nodeSelector: {}
+tolerations: []
+affinity: {}

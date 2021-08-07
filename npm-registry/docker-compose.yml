@@ -1,0 +1,13 @@
+version: '3.1'
+
+services:
+  verdaccio:
+    image: verdaccio/verdaccio:4
+    container_name: 'my-npm-registry'
+    environment:
+      - VERDACCIO_PORT=4873
+    ports:
+      - '9012:4873'
+    volumes:
+      - ./conf:/verdaccio/conf
+      - /mnt/d01/npm-volume:/verdaccio/storage

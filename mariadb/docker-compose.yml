@@ -1,0 +1,48 @@
+version: '2'
+
+#.. other network setup for my-keycloak      
+networks:
+  my-maria:
+    driver: bridge   
+
+#.. other services
+services: 
+  #.. mariadb
+  mariadb-master:
+    image: docker.io/bitnami/mariadb:10.5-debian-10
+    container_name: my-mariadb-master
+    volumes:
+      - ./mariadb-volume:/bitnami/mariadb
+    environment:
+      - MARIADB_REPLICATION_MODE=master
+      - MARIADB_REPLICATION_USER=my-repl
+      - MARIADB_REPLICATION_PASSWORD=AbCd007!
+      - MARIADB_MASTER_ROOT_USER=root
+      - MARIADB_ROOT_PASSWORD=AbCd007!
+      - MARIADB_DATABASE=my_api
+      - MARIADB_USER=my-api-dev
+      - MARIADB_PASSWORD=AbCd7! 
+    ports:
+      - 9013:3306
+    networks: 
+      - my-maria
+    restart: on-failure
+
+  mariadb-slave:
+    image: docker.io/bitnami/mariadb:10.5-debian-10
+    container_name: my-mariadb-slave-1
+    ports:
+      - 9014:3306
+    depends_on:
+      - mariadb-master
+    environment:
+      - MARIADB_REPLICATION_MODE=slave
+      - MARIADB_REPLICATION_USER=my-repl
+      - MARIADB_REPLICATION_PASSWORD=AbCd007!
+      - MARIADB_MASTER_HOST=mariadb-master
+      - MARIADB_MASTER_PORT_NUMBER=3306
+      - MARIADB_MASTER_ROOT_USER=root
+      - MARIADB_MASTER_ROOT_PASSWORD=AbCd007!
+    networks:
+      - my-maria
+    restart: on-failure  

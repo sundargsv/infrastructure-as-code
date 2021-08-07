@@ -1,0 +1,22 @@
+{{- if .Values.horizontalautoscaling.enabled -}}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ template "fullname" . }}
+spec:
+  minReplicas: {{ .Values.replicaCount }}
+  maxReplicas: {{ .Values.maxReplicaCount }}
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: {{ template "fullname" . }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.horizontalautoscaling.cpuUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageValue: {{ .Values.horizontalautoscaling.memoryUtilization }}
+{{- end }}

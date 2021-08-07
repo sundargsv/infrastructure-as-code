@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "fullname" . }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 50%
+  template:
+    metadata:
+      labels:
+        app: {{ template "fullname" . }}
+    spec:
+      nodeSelector:
+        {{ if .Values.location }}
+        node-type: pod
+        location: "{{ .Values.location }}"
+        {{ end }}
+      imagePullSecrets:
+        - name: "{{ .Values.imagePullSecrets.name }}"  
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.name }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.service.internalPort }}
+        # {{- if .Values.livenessProbe }}
+        # livenessProbe: {{ toYaml .Values.livenessProbe | nindent 12 }}
+        # {{- end }}
+        # {{- if .Values.readinessProbe }}
+        # readinessProbe: {{ toYaml .Values.readinessProbe | nindent 12 }}
+        # {{- end }}
+        # restartPolicy: {{ .Values.restartPolicy }}
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: {{ .Values.environment }}
+        resources: {{ toYaml .Values.resources | nindent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}

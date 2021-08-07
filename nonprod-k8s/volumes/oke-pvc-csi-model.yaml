@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-infra-1
+spec:
+  storageClassName: "oci-bv"
+  # selector:
+  #   matchLabels:
+  #     failure-domain.beta.kubernetes.io/zone: "AP-MELBOURNE-1-AD-1"
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi

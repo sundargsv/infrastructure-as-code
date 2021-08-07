@@ -1,0 +1,15 @@
+version: '2'
+services:
+  vault:
+    image: vault
+    container_name: my-vault
+    ports:
+      - "9004:8200"
+    restart: always
+    volumes:
+      - ./vault-volume/logs:/vault/logs
+      - ./vault-volume/file:/vault/file
+      - ./vault-volume/config:/vault/config
+    cap_add:
+      - IPC_LOCK
+    entrypoint: vault server -config=/vault/config/vault.json
