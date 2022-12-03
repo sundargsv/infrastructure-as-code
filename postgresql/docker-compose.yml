@@ -1,0 +1,39 @@
+version: '3'
+
+#.. other network setup for my-postgresql      
+# networks:
+#   my-postgresql:
+#     driver: bridge   
+
+#.. other services
+services: 
+  #.. pgadmin (Only for development mode)
+  pgadmin:
+    container_name: my-pgadmin-dev
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: dev.my@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: AbCd7!
+    volumes:
+      - ./pgadmin-volume:/root/.pgadmin
+    ports:
+      - 5431:80
+    # networks:
+    #   - my-postgresql
+    restart: unless-stopped      
+
+  #.. postgresql
+  postgres:
+    image: postgres
+    container_name: my-postgresql-dev
+    volumes:
+      - ./postgresql-volume:/var/lib/postgresql
+    environment: 
+      POSTGRES_DB: trendysuite-core
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    ports:
+      - 5432:5432
+    # networks: 
+    #   - my-postgresql
+    restart: unless-stopped

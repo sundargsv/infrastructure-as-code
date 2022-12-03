@@ -25,3 +25,5 @@ pyenv
 Vagrantfile
 
 **/.DS_Store
+mongo/mongodb-volume/
+postgresql/*-volume
